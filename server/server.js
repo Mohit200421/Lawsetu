@@ -8,48 +8,37 @@ import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
-/* =========================
-   CORS (FINAL, NO-BS VERSION)
-========================= */
-app.use(
-  cors({
-    origin: true, // 🔥 reflect request origin automatically
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+// ✅ SIMPLEST CORS FIX - Allow all in development
+app.use(cors());
 
-// 🔥 Explicit preflight handling (Express 5 safe)
+// Basic CORS headers (optional)
 app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
   }
+  
   next();
 });
 
-/* =========================
-   MIDDLEWARE
-========================= */
+// Middleware
 app.use(express.json());
 
-/* =========================
-   DATABASE
-========================= */
+// Database
 connectDB();
 
-/* =========================
-   ROUTES
-========================= */
+// Routes
 app.use("/api/auth", authRoutes);
 
+// Test route
 app.get("/", (req, res) => {
-  res.send("LawSetu API Running");
+  res.send("API Running");
 });
 
-/* =========================
-   SERVER
-========================= */
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server started on port ${PORT}`);
 });
