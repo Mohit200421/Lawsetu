@@ -9,7 +9,7 @@ import authRoutes from "./routes/auth.routes.js";
 const app = express();
 
 /* =========================
-   CORS (FINAL FIX)
+   CORS (EXPRESS 5 SAFE)
 ========================= */
 app.use(
   cors({
@@ -23,9 +23,6 @@ app.use(
     credentials: true,
   })
 );
-
-// 🔥 IMPORTANT: handle preflight explicitly
-app.options("*", cors());
 
 /* =========================
    MIDDLEWARE
