@@ -9,18 +9,32 @@ import authRoutes from "./routes/auth.routes.js";
 const app = express();
 
 /* =========================
-   CORS (EXPRESS 5 SAFE)
+   CORS (FINAL – VERCEL SAFE)
 ========================= */
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "https://lawsetu-eta.vercel.app", // 👈 your Vercel frontend
-    ],
+    origin: (origin, callback) => {
+      // Allow server-to-server, Postman, curl
+      if (!origin) return callback(null, true);
+
+      // Allow localhost
+      if (
+        origin.startsWith("http://localhost:5173") ||
+        origin.startsWith("http://localhost:3000")
+      ) {
+        return callback(null, true);
+      }
+
+      // ✅ Allow ALL Vercel deployments
+      if (origin.endsWith(".vercel.app")) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("CORS not allowed"));
+    },
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
   })
 );
 
