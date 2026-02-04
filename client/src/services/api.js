@@ -1,17 +1,21 @@
 import axios from "axios";
 
-// Get the correct API URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Add /api to the baseURL
+const API_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api` 
+  : 'http://localhost:5000/api'; // Add /api here
 
 console.log('🔗 API Base URL:', API_URL);
 
 const API = axios.create({
-  baseURL: API_URL,
+  baseURL: API_URL, // Now includes /api
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// ... rest of the code remains same
 
 // Add request interceptor for debugging
 API.interceptors.request.use(

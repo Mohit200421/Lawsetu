@@ -10,11 +10,14 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
+      },
+      // Add this to handle /auth routes
+      '/auth': {
+        target: 'http://localhost:5000/api',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/auth/, '/auth')
       }
     }
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: true
   }
 })
