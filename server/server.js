@@ -9,34 +9,23 @@ import authRoutes from "./routes/auth.routes.js";
 const app = express();
 
 /* =========================
-   CORS (FINAL – VERCEL SAFE)
+   CORS (FINAL, NO-BS VERSION)
 ========================= */
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow server-to-server, Postman, curl
-      if (!origin) return callback(null, true);
-
-      // Allow localhost
-      if (
-        origin.startsWith("http://localhost:5173") ||
-        origin.startsWith("http://localhost:3000")
-      ) {
-        return callback(null, true);
-      }
-
-      // ✅ Allow ALL Vercel deployments
-      if (origin.endsWith(".vercel.app")) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("CORS not allowed"));
-    },
-    credentials: true,
+    origin: true, // 🔥 reflect request origin automatically
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// 🔥 Explicit preflight handling (Express 5 safe)
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 /* =========================
    MIDDLEWARE
