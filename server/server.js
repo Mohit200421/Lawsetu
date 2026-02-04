@@ -11,83 +11,45 @@ const app = express();
 /* =========================
    CORS Configuration
 ========================= */
-// Your frontend URLs
 const allowedOrigins = [
-  'http://localhost:5173',        // Local Vite
-  'http://localhost:3000',        // Local React
-  'https://lawsetu-oiqf0pha3-mohit200421s-projects.vercel.app', // Your main Vercel URL
-  'https://lawsetu-oiqf0pha3-mohit200421s-projects.vercel.app/login', 
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://lawsetu-oiqf0pha3-mohit200421s-projects.vercel.app',
+  'https://lawsetu-oiqf0pha3-mohit200421s-projects.vercel.app/login',
 ];
 
-const corsOptions = {
+app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl)
-    if (!origin) return callback(null, true);
-    
-    // Allow all localhost origins for development
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return callback(null, true);
+    if (!origin || allowedOrigins.includes(origin) || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'), false);
     }
-    
-    // Check against allowed list
-    if (allowedOrigins.some(allowedOrigin => 
-      origin === allowedOrigin || 
-      origin.startsWith(allowedOrigin.replace('https://', 'https://'))
-    )) {
-      return callback(null, true);
-    }
-    
-    console.log(`CORS blocked: ${origin}`);
-    callback(new Error('Not allowed by CORS'), false);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  exposedHeaders: [],
-  maxAge: 600, // 10 minutes
-};
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
-// Apply CORS
-app.use(cors(corsOptions));
-
-// Handle preflight requests globally
-app.options('*', cors(corsOptions));
-
-// Additional CORS headers
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  if (origin && (
-    origin.includes('localhost') || 
-    origin.includes('127.0.0.1') ||
-    allowedOrigins.some(allowed => origin === allowed)
-  )) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header(
-    'Access-Control-Allow-Methods',
-    'GET, POST, PUT, DELETE, OPTIONS, PATCH'
-  );
-  res.header(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-  );
-  
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
+// Handle preflight
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.status(200).send();
 });
 
 /* =========================
    MIDDLEWARE
 ========================= */
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Debug middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 /* =========================
    DATABASE
@@ -97,48 +59,56 @@ connectDB();
 /* =========================
    ROUTES
 ========================= */
+console.log('Registering auth routes at /api/auth');
 app.use("/api/auth", authRoutes);
 
-// Health check
-app.get("/health", (req, res) => {
-  res.status(200).json({ 
-    status: "OK",
-    message: "Backend is running",
-    allowedOrigins: allowedOrigins,
-    timestamp: new Date().toISOString()
+// Test route
+app.get("/api/test", (req, res) => {
+  res.json({ message: "API is working!" });
+});
+
+// Debug route to see all registered routes
+app.get("/api/debug/routes", (req, res) => {
+  const routes = [];
+  app._router.stack.forEach((middleware) => {
+    if (middleware.route) {
+      routes.push({
+        path: middleware.route.path,
+        methods: middleware.route.methods
+      });
+    } else if (middleware.name === 'router') {
+      middleware.handle.stack.forEach((handler) => {
+        if (handler.route) {
+          routes.push({
+            path: '/api/auth' + handler.route.path, // Adjust based on your routes
+            methods: handler.route.methods
+          });
+        }
+      });
+    }
   });
+  res.json({ routes });
 });
 
 app.get("/", (req, res) => {
   res.send(`
-    <h1>LawSetu Backend API 🚀</h1>
-    <p>Status: <strong>Running</strong></p>
-    <p>Allowed Origins:</p>
+    <h1>LawSetu Backend</h1>
+    <p>Server is running</p>
     <ul>
-      ${allowedOrigins.map(o => `<li>${o}</li>`).join('')}
+      <li><a href="/api/test">Test API</a></li>
+      <li><a href="/api/debug/routes">View Routes</a></li>
+      <li><a href="/api/auth/register">Register endpoint</a> (should show 404/405)</li>
     </ul>
-    <p><a href="/health">Health Check</a></p>
   `);
 });
 
-/* =========================
-   ERROR HANDLER
-========================= */
-app.use((err, req, res, next) => {
-  console.error(err.message);
-  
-  if (err.message.includes('CORS')) {
-    return res.status(403).json({
-      error: 'CORS Error',
-      message: 'Origin not allowed',
-      yourOrigin: req.headers.origin,
-      allowedOrigins: allowedOrigins
-    });
-  }
-  
-  res.status(500).json({ 
-    error: 'Internal Server Error',
-    message: err.message
+// 404 handler
+app.use((req, res) => {
+  console.log(`404: ${req.method} ${req.url}`);
+  res.status(404).json({
+    error: "Not Found",
+    message: `Route ${req.method} ${req.url} not found`,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -146,11 +116,10 @@ app.use((err, req, res, next) => {
    SERVER
 ========================= */
 const PORT = process.env.PORT || 5000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
-
 app.listen(PORT, () => {
-  console.log(`🚀 Server running in ${NODE_ENV} mode on port ${PORT}`);
-  console.log(`🌐 Allowed origins:`);
-  allowedOrigins.forEach(origin => console.log(`   ${origin}`));
-  console.log(`🔗 Health: http://localhost:${PORT}/health`);
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🌐 Test URLs:`);
+  console.log(`   http://localhost:${PORT}/`);
+  console.log(`   http://localhost:${PORT}/api/test`);
+  console.log(`   http://localhost:${PORT}/api/auth/register`);
 });
