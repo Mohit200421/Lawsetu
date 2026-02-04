@@ -9,31 +9,23 @@ import authRoutes from "./routes/auth.routes.js";
 const app = express();
 
 /* =========================
-   CORS CONFIGURATION
+   CORS (FINAL FIX)
 ========================= */
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:3000",
-  "https://lawsetu-eta.vercel.app", // 👈 YOUR VERCEL DOMAIN
-];
-
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (Postman, mobile apps)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        return callback(
-          new Error(`CORS not allowed for origin: ${origin}`)
-        );
-      }
-    },
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://lawsetu-eta.vercel.app", // 👈 your Vercel frontend
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
+
+// 🔥 IMPORTANT: handle preflight explicitly
+app.options("*", cors());
 
 /* =========================
    MIDDLEWARE
